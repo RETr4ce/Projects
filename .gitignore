@@ -17,5 +17,10 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+
+nimcache/
+nimblecache/
+htmldocs/
+
 # Go workspace file
 go.work
