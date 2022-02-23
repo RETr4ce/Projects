@@ -1,0 +1,86 @@
+#https://crackmes.one/crackme/5fde798f33c5d4264e590040
+
+Tools:
+	Radare2
+	Cutter
+
+Analyse:
+
+first glimpse at the executable I can see that it's been compiled with the mingw compiler.
+This is crucial information as in stage two the author uses srand. As far I know srand with c/c++
+works different in other languages but for the solution I had to write it in C++. Used MSVC for this not mingw.
+Kinda lazy to install it ;) 
+
+ http://mingw-w64.org/doku.php
+ https://cygwin.com/install.html
+ https://en.wikipedia.org/wiki/Microsoft_Visual_C%2B%2B
+
+Stage 1 - Enter Password:
+
+Strings needs to be a lenght of 10 or longer. The 6 character has to be a .
+
+    	    0x00401537      890424         mov dword [esp], eax
+    	    0x0040153a      e8e9260000     call sym._strlen
+	        0x0040153f      83f809         cmp eax, 9								//Compare string lenght. Count from 0
+.....
+.....
+
+|      |`-> 0x0040155a      0fb6442447     movzx eax, byte [var_47h]				//esp:0x0061fea0 + 0x47 = 0x0061fee7
+|      |    0x0040155f      3c2e           cmp al, 0x2e                ; rax		//This compares the value of the 6 byte with 0x2e
+
+Stage 2 - Enter password key:
+
+First it checks if the password is entered is the same lenght as the password in stage 1.
+Then it ciphers the password from stage 1 and compares it the password from stage 2.
+The ciphered password can be found at address 0x407080. 
+
+0x00401639 b    c70424807040.  mov dword [esp], 0x407080
+0x00401640      e8f3250000     call sym._strcmp            ;[2] ; int strcmp(const char *s1, const char *s2)
+0x00401645      85c0           test eax, eax
+
+You can put a breakpoint at the address and show the hexdump. 
+ px @ 0x407080
+- offset -   0 1  2 3  4 5  6 7  8 9  A B  C D  E F  0123456789ABCDEF
+0x00407080  6b65 6c6d 732c 7272 6e6e 6100 0000 0000  kelms,rrnna.....
+
+
+.\crackme_by_chrisK_v02.exe
+Enter Password: hello.world
+Enter password key: kelms,rrnna
+Nice!!
+
+---------
+
+Ofcourse there has to be a keygen. I've used Cutter to peek at the pseudocode.
+
+keygen.cpp
+```
+#include <iostream>
+
+int main()
+{
+	int i;
+	int pwdlen;
+	int random;
+	std::string password;
+	password = "hello.world";
+	pwdlen = password.length();
+
+	std::srand(pwdlen);
+	for (i = 0; i < pwdlen; ++i) {
+		random = std::rand();
+		password[i] += random % pwdlen - pwdlen / 2;
+	}
+	std::cout << password;
+}
+```
+
+---------
+
+Easter egg:
+
+There is also a easter egg in the flagspace pointing to a imgur url wishing us a happy holiday. 
+Thank you, chrisK! It's a bit late but happy holiday's to you too!
+
+:> fs strings;f
+0x00405064 28 str.https:__imgur.com_a_pql7Epy
